@@ -1,21 +1,51 @@
-﻿namespace Backend.Infrastructure.PostgreSQL.TypeConfigurations
+﻿namespace Backend.Infrastructure.PostgreSQL.TypeConfigurations;
+
+using Domain.AggregatesModel.FileAggregate;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Domain.AggregatesModel.ProductAggregate;
+
+public class ProductTypeConfiguration : IEntityTypeConfiguration<Product>
 {
-    using Domain.AggregatesModel.FileAggregate;
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.EntityFrameworkCore.Metadata.Builders;
-    using Domain.AggregatesModel.ProductAggregate;
-
-    public class ProductTypeConfiguration : IEntityTypeConfiguration<Product>
+    public void Configure(EntityTypeBuilder<Product> builder)
     {
-        public void Configure(EntityTypeBuilder<Product> builder)
-        {
-            builder.HasKey(e => e.Id);
+        builder.ToTable("products").HasKey(p => p.Id);
 
-            builder.HasOne<Image>()
-                .WithOne()
-                .HasForeignKey<Product>(e => e.ImageId)
-                .HasConstraintName("FK_Product_Image")
-                .IsRequired();
-        }
+        builder.Property(p => p.Name)
+            .HasDefaultValue("")
+            .HasColumnType("varchar")
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(p => p.IsDeleted)
+            .HasDefaultValue(false)
+            .HasColumnType("boolean")
+            .IsRequired();
+
+        builder.Property(p => p.Description)
+            .HasDefaultValue("")
+            .HasColumnType("text")
+            .IsRequired();
+
+        builder.Property(p => p.Price)
+            .HasDefaultValue(0)
+            .HasColumnType("decimal(18,2)")
+            .IsRequired();
+
+        builder.Property(p => p.Quantity)
+            .HasDefaultValue(0)
+            .HasColumnType("int")
+            .IsRequired();
+
+        builder.Property(p => p.CreatedAt)
+            .HasColumnType("timestamp(0) without time zone")
+            .HasDefaultValueSql("NOW()")
+            .IsRequired();
+
+        builder.HasOne<File>()
+            .WithOne()
+            .HasForeignKey<Product>(p => p.ImageId)
+            .HasConstraintName("FK_Product_Image")
+            .IsRequired();
     }
 }

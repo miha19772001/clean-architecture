@@ -6,16 +6,16 @@ using Errors;
 public class File : AggregateRoot
 {
     [Obsolete("Only for EF", true)]
-    public File()
+    private File()
     {
     }
 
-    protected File(
+    private File(
         string originalName,
         string fileSystemName,
         FileType type)
     {
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTime.Now;
         OriginalName = originalName;
         FileSystemName = fileSystemName;
         Type = type;

@@ -6,7 +6,7 @@ using Errors;
 public class CartItem : Entity
 {
     [Obsolete("Only for EF", true)]
-    public CartItem()
+    private CartItem()
     {
     }
 
@@ -21,7 +21,7 @@ public class CartItem : Entity
     }
 
     public Guid CartId { get; private set; }
-    public Cart? Cart { get; private set; }
+    public Cart Cart { get; private set; } = null!;
 
     public Guid ProductId { get; private set; }
 
@@ -41,5 +41,7 @@ public class CartItem : Entity
         return new CartItem(cartId, productId, quantity);
     }
 
-    public void SetQuantity(int quantity) => Quantity = quantity;
+    public void AddQuantity() => Quantity += 1;
+
+    public void RemoveQuantity() => Quantity -= 1;
 }

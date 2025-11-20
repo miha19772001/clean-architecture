@@ -11,24 +11,24 @@ public class Role : ValueObject
 
     private static readonly Role[] Roles = [User, Admin];
 
-    public string Value { get; private set; }
-
     private Role(string value)
     {
         Value = value;
     }
 
-    public static Role Create(string input)
+    public string Value { get; }
+    
+    public static Role Create(string value)
     {
-        if (string.IsNullOrWhiteSpace(input))
+        if (string.IsNullOrWhiteSpace(value))
             throw DomainErrors.General.ValueIsRequired(nameof(Role));
 
-        var role = input.Trim().ToLower();
+        var role = value.Trim().ToLower();
 
-        var isRolePresent =
-            Roles.Any(ft => ft.Value.Equals(role, StringComparison.CurrentCultureIgnoreCase));
+        var hasValue =
+            Roles.Any(x => x.Value.Equals(role, StringComparison.CurrentCultureIgnoreCase));
 
-        if (!isRolePresent)
+        if (!hasValue)
             throw DomainErrors.General.ValueIsInvalid(nameof(Role));
 
         return new Role(role);

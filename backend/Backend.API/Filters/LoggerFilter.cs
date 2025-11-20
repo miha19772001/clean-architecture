@@ -1,5 +1,8 @@
 ﻿namespace Backend.API.Filters;
 
+using FluentValidation;
+using Application.Validation;
+using Infrastructure.Errors;
 using Domain.Errors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -13,8 +16,8 @@ public class LoggerFilter(ILogger<LoggerFilter> logger) : IAsyncActionFilter
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        var actionName = context.ActionDescriptor.DisplayName ?? context.ActionDescriptor.Id;
-        var controllerName = context.Controller?.GetType().Name ?? "UnknownController";
+        var controllerName = context.ActionDescriptor.RouteValues["controller"] ?? "UnknownController";
+        var actionName = context.ActionDescriptor.RouteValues["action"] ?? "UnknownAction";
         var httpMethod = context.HttpContext.Request.Method;
         var url = context.HttpContext.Request.Path;
 
@@ -40,7 +43,14 @@ public class LoggerFilter(ILogger<LoggerFilter> logger) : IAsyncActionFilter
         }
         else if (resultContext.Exception is not null)
         {
-            var apiError = DomainErrorFactory.Create(resultContext.Exception);
+            var apiError = resultContext.Exception switch
+            {
+                BusinessLogicException businessLogicException => DomainErrorFactory.Create(businessLogicException),
+                InfrastructureException infrastructureException => InfrastructureErrorFactory.Create(
+                    infrastructureException),
+                ValidationException validationException => ValidationErrorFactory.Create(validationException),
+                _ => ApiError.DefaultApiError
+            };
 
             _logger.LogError(
                 $"FAILED: {controllerName}.{actionName} completed in {duration}ms | " +

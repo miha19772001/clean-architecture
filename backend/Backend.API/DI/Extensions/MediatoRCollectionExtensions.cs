@@ -2,7 +2,6 @@
 
 using System.Reflection;
 using Application.Validation;
-using MediatR;
 
 public static class MediatoRCollectionExtensions
 {

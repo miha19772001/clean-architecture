@@ -2,17 +2,18 @@
 
 using Extensions;
 
-public static class DiConfiguration
+public static class DIConfiguration
 {
-    public static void AddCollectionExtensions(this IServiceCollection services)
+    public static void AddCollectionExtensions(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
-        services.AddRepositoryServices();
-
         services.AddServices();
         services.AddMediatoR();
         services.AddErrors();
 
-        services.AddAutoMapperProfiles();
         services.AddControllers();
+
+        services.AddApiAuthentication(configuration);
     }
 }

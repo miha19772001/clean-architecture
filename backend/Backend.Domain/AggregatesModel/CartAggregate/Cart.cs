@@ -5,22 +5,21 @@ using Errors;
 
 public class Cart : AggregateRoot
 {
-    private readonly List<CartItem> _cartItems;
+    private readonly List<CartItem> _items = [];
 
     [Obsolete("Only for EF", true)]
-    public Cart()
+    private Cart()
     {
     }
 
     private Cart(Guid userId)
     {
         UserId = userId;
-        _cartItems = [];
     }
 
     public Guid UserId { get; private set; }
 
-    public IReadOnlyCollection<CartItem> CartItems => _cartItems;
+    public IReadOnlyCollection<CartItem> Items => _items;
 
     public static Cart Create(Guid userId)
     {
@@ -30,46 +29,39 @@ public class Cart : AggregateRoot
         return new Cart(userId);
     }
 
-    public Guid AddCartItem(Guid productId, int quantity)
+    public CartItem AddItem(Guid productId)
     {
-        var cartItem = CartItem.Create(Id, productId, quantity);
+        var cartItem = _items.FirstOrDefault(ci => ci.ProductId == productId);
 
-        var existing = _cartItems.FirstOrDefault(ci => ci.ProductId == productId);
-
-        if (existing is not null)
+        if (cartItem is null)
         {
-            existing.SetQuantity(quantity);
+            cartItem = CartItem.Create(Id, productId, 1);
+            _items.Add(cartItem);
         }
         else
         {
-            _cartItems.Add(cartItem);
+            cartItem.AddQuantity();
         }
 
-        return cartItem.Id;
+        return cartItem;
     }
 
-    public void EditQuantityCartItem(Guid productId, int newQuantity)
+    public CartItem RemoveItem(Guid productId)
     {
-        if (newQuantity < 0)
-            throw DomainErrors.Cart.QuantityNotValid();
-
-        var cartItem = _cartItems.FirstOrDefault(ci => ci.ProductId == productId);
+        var cartItem = _items.FirstOrDefault(ci => ci.ProductId == productId);
 
         if (cartItem is null)
             throw DomainErrors.Cart.ItemNotFound();
 
-        cartItem.SetQuantity(newQuantity);
-    }
+        if (cartItem.Quantity > 1)
+        {
+            cartItem.RemoveQuantity();
+        }
+        else
+        {
+            _items.Remove(cartItem);
+        }
 
-    public Guid RemoveCartItem(Guid productId)
-    {
-        var cartItem = _cartItems.FirstOrDefault(ci => ci.ProductId == productId);
-
-        if (cartItem is null)
-            throw DomainErrors.Cart.ItemNotFound();
-
-        _cartItems.Remove(cartItem);
-
-        return cartItem.Id;
+        return cartItem;
     }
 }

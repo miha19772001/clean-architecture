@@ -1,9 +1,9 @@
 using Backend.API.DI;
 using Backend.API.Filters;
 using Backend.Infrastructure.PostgreSQL;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.OpenApi.Models;
 using NLog.Web;
+using Microsoft.AspNetCore.CookiePolicy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,21 +18,7 @@ var connectionString = builder.Configuration.GetConnectionString("DbConnection")
 DatabaseConfiguration.Connect(builder.Services, connectionString);
 
 //Add collection extensions for DI
-DiConfiguration.AddCollectionExtensions(builder.Services);
-
-var domain = builder.Configuration.GetSection("Domain").Value
-             ?? throw new InvalidOperationException("Section 'Domain' is not configured.");
-
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.Cookie.Name = "MyCookie";
-        options.Cookie.Domain = domain;
-        options.Cookie.HttpOnly = true;
-        options.SlidingExpiration = true;
-        options.ExpireTimeSpan = TimeSpan.FromDays(30);
-    });
-builder.Services.AddAuthorization();
+DIConfiguration.AddCollectionExtensions(builder.Services, builder.Configuration);
 
 //Config CORS
 builder.Services.AddCors(options =>
@@ -78,10 +64,15 @@ if (app.Environment.IsDevelopment())
     DatabaseConfiguration.CreateSchema(app);
 }
 
-app.MapGet("api/getData", () => "Hallo Mann!");
-
 app.UseRouting();
 app.UseCors("AllowAllOrigins");
+
+app.UseCookiePolicy(new CookiePolicyOptions
+{
+    MinimumSameSitePolicy = SameSiteMode.Strict,
+    HttpOnly = HttpOnlyPolicy.Always,
+    Secure = CookieSecurePolicy.Always,
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

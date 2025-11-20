@@ -6,7 +6,7 @@ using Errors;
 public class Product : AggregateRoot
 {
     [Obsolete("Only for EF", true)]
-    public Product()
+    private Product()
     {
     }
 
@@ -22,7 +22,7 @@ public class Product : AggregateRoot
         Description = description;
         Price = price;
         Quantity = quantity;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTime.Now;
         ImageId = imageId;
     }
 
@@ -65,5 +65,7 @@ public class Product : AggregateRoot
         return new Product(name, description, price, quantity, imageId);
     }
 
-    public void SetQuantity(int quantity) => Quantity = quantity;
+    public void AddQuantity() => Quantity += 1;
+
+    public void RemoveQuantity() => Quantity -= 1;
 }

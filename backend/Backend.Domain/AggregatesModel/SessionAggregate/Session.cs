@@ -6,7 +6,7 @@ using Errors;
 public class Session : AggregateRoot
 {
     [Obsolete("Only for EF", true)]
-    public Session()
+    private Session()
     {
     }
 
@@ -16,7 +16,7 @@ public class Session : AggregateRoot
         IsDeleted = false;
         Ip = ip.Trim();
         Agent = agent;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTime.Now;
     }
 
     public Guid UserId { get; private set; }
@@ -34,14 +34,11 @@ public class Session : AggregateRoot
         if (userId == Guid.Empty)
             throw DomainErrors.General.ValueIsRequired(nameof(UserId));
 
-        if (string.IsNullOrWhiteSpace(ip))
-            throw DomainErrors.General.ValueIsRequired(nameof(Ip));
-
         if (string.IsNullOrWhiteSpace(agent))
             throw DomainErrors.General.ValueIsRequired(nameof(Agent));
 
         return new Session(userId, ip, agent);
     }
 
-    public void Delete() => IsDeleted = true;
+    public void SetIsDeleted() => IsDeleted = true;
 }

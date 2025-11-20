@@ -7,20 +7,20 @@ using Errors;
 public class User : AggregateRoot
 {
     [Obsolete("Only for EF", true)]
-    public User()
+    private User()
     {
     }
 
-    private User(string email, string passwordHash)
+    private User(string login, string passwordHash)
     {
-        Email = email.Trim();
+        Login = login.Trim();
         PasswordHash = passwordHash;
         Role = Role.User;
         IsDeleted = false;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTime.Now;
     }
 
-    public string Email { get; private set; }
+    public string Login { get; private set; }
 
     public string PasswordHash { get; private set; }
 
@@ -30,14 +30,14 @@ public class User : AggregateRoot
 
     public DateTime CreatedAt { get; private set; }
 
-    public static User Create(string email, string password)
+    public static User Create(string login, string password)
     {
-        if (string.IsNullOrWhiteSpace(email))
-            throw DomainErrors.General.ValueIsRequired(nameof(Email));
+        if (string.IsNullOrWhiteSpace(login))
+            throw DomainErrors.General.ValueIsRequired(nameof(Login));
 
         if (string.IsNullOrWhiteSpace(password))
             throw DomainErrors.General.ValueIsRequired(nameof(PasswordHash));
 
-        return new User(email, password);
+        return new User(login, password);
     }
 }

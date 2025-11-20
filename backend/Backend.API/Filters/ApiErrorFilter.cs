@@ -1,5 +1,6 @@
 ﻿namespace Backend.API.Filters;
 
+using Infrastructure.Errors;
 using Application.Validation;
 using FluentValidation;
 using System.Text.Json;
@@ -15,6 +16,8 @@ public class ApiErrorFilter : IAsyncExceptionFilter
         var error = context.Exception switch
         {
             BusinessLogicException businessLogicException => DomainErrorFactory.Create(businessLogicException),
+            InfrastructureException infrastructureException => InfrastructureErrorFactory.Create(
+                infrastructureException),
             ValidationException validationException => ValidationErrorFactory.Create(validationException),
             _ => ApiError.DefaultApiError
         };

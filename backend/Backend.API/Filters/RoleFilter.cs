@@ -1,57 +1,96 @@
-﻿namespace Backend.API.Filters
+﻿namespace Backend.API.Filters;
+
+using Application.Queries.User;
+using Application.Services.Account;
+using Domain.AggregatesModel.UserAggregate;
+using Domain.Errors;
+using MediatR;
+using Microsoft.AspNetCore.Mvc.Filters;
+using System.Threading.Tasks;
+
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+public class RoleFilterAttribute : Attribute, IAsyncActionFilter
 {
-    using Microsoft.AspNetCore.Mvc.Filters;
-    using System.Threading.Tasks;
+    private readonly Role? _requiredRole;
 
-    public class RoleFilter : Attribute, IAsyncActionFilter
+
+    public RoleFilterAttribute()
     {
-        //private readonly Role? _role;
+        _requiredRole = null;
+    }
 
-        //public RoleFilter()
-        //{
-        //    _role = null;
-        //}
-
-        //public RoleFilter(Role role)
-        //{
-        //    _role = role;
-        //}
-
-        public async Task OnActionExecutionAsync(
-            ActionExecutingContext context,
-            ActionExecutionDelegate next)
+    public RoleFilterAttribute(RequiredRole role)
+    {
+        _requiredRole = role switch
         {
-            //    if (_role is null)
-            //    {
-            //        await next();
-            //        return;
-            //    }
+            RequiredRole.User => Role.User,
+            RequiredRole.Admin => Role.Admin,
+            _ => throw new ArgumentException($"Unsupported role: {role}", nameof(role))
+        };
+    }
 
-            //    var ct = context.HttpContext.RequestAborted;
+    public async Task OnActionExecutionAsync(
+        ActionExecutingContext context,
+        ActionExecutionDelegate next)
+    {
+        if (_requiredRole is null)
+        {
+            await next();
+            return;
+        }
 
-            //    var authenticationService = context.HttpContext.RequestServices.GetRequiredService<IAuthenticationService>();
+        var httpContext = context.HttpContext;
+        var ct = httpContext.RequestAborted;
 
-            //    User user = await authenticationService.GetCurrentUserAsync(ct);
+        try
+        {
+            var accountService = httpContext.RequestServices.GetRequiredService<IAccountService>();
+            var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
 
-            //    if (user is null)
-            //        throw new BusinessLogicException(ExtensionCode.NoRights);
+            var userId = await accountService.GetCurrentUserIdAsync(ct);
 
+            if (userId == Guid.Empty)
+                throw DomainErrors.User.NoRights();
 
-            //    if (_permissions.ContainsKey(_role.Value) && _permissions[_role.Value].Contains(user.Role))
-            //    {
-            //        await next();
-            //        return;
-            //    }
+            var user = await mediator.Send(new FindUserByIdQuery(userId), ct);
 
-            //    throw new BusinessLogicException(ExtensionCode.NoRights);
-            //    //await next();
-            //}
+            if (user is null)
+                throw DomainErrors.User.NoRights();
 
-            //private static readonly Dictionary<Role, Role[]> _permissions = new Dictionary<Role, Role[]>
-            //{
-            //    {   Role.User,     [ Role.User, Role.Admin ]   },
-            //    {   Role.Admin,    [ Role.Admin ]              },
-            //};
+            if (IsAuthorized(user.Role, _requiredRole))
+            {
+                await next();
+            }
+            else
+            {
+                throw DomainErrors.User.NoRights();
+            }
+        }
+        catch (Exception)
+        {
+            throw DomainErrors.User.NoRights();
         }
     }
+
+
+    private static readonly Dictionary<string, HashSet<string>> Permissions = new()
+    {
+        [Role.User.Value] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Role.User.Value, Role.Admin.Value },
+
+        [Role.Admin.Value] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Role.Admin.Value }
+    };
+
+    private static bool IsAuthorized(string userRole, Role requiredRole)
+    {
+        if (!Permissions.TryGetValue(requiredRole.Value, out var allowedRoles))
+            return false;
+
+        return allowedRoles.Contains(userRole);
+    }
+}
+
+public enum RequiredRole
+{
+    User,
+    Admin
 }
